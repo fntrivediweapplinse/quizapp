@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quiz Question{% endblock %}
+
+{% block content %}
+<div class="quiz-container">
+    <div class="quiz-header">
+        <h2>{{ question.category.name }}</h2>
+        <div class="progress-container">
+            <div class="progress" style="width: {{ progress }}%"></div>
+        </div>
+        <p>Question {{ current_question_number }} of {{ total_questions }} | Score: <span id="current-score">{{ score }}</span> | Time Left: <span id="timer">{{ quiz_timer_duration }}</span>s</p>
+    </div>
+
+    <div class="question-container">
+        <h3>{{ question.text }}</h3>
+        <form method="post" id="quiz-form">
+            {% csrf_token %}
+            <div class="options-container">
+                {% for option in options %}
+                <div class="option-wrapper">
+                    <input type="radio" name="selected_option" value="{{ option }}" id="option{{ forloop.counter }}" class="option-input" required>
+                    <label for="option{{ forloop.counter }}" class="option-label" data-option-value="{{ option }}">
+                        {{ option }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit" class="submit-btn">Submit Answer</button>
+        </form>
+    </div>
+</div>
+
+<!-- Celebration Animation Container -->
+<div id="celebration" class="celebration-container"></div>
+
+<style>
+/* Add or update styles as needed for the visual feedback and timer */
+.quiz-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.quiz-header {
+    margin-bottom: 2rem;
+}
+
+.progress-container {
+    width: 100%;
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background: #3498db;
+    transition: width 0.3s ease;
+}
+
+.question-container {
+    margin-top: 2rem;
+}
+
+.options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.option-wrapper {
+    position: relative;
+}
+
+.option-input {
+    display: none;
+}
+
+.option-label {
+    display: block;
+    padding: 1rem;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.option-label:hover {
+    background: #e9ecef;
+}
+
+/* Correct Answer Styles */
+.option-label.correct {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+/* Incorrect Answer Styles */
+.option-label.incorrect {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 1rem;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.submit-btn:hover {
+    background: #2980b9;
+}
+
+/* Celebration Animation Styles */
+.celebration-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #f00;
+    animation: fall 3s linear infinite;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+    }
+}
+
+/* Style for timer */
+#timer {
+    font-weight: bold;
+    color: #3498db;
+}
+
+.option-label.selected {
+    border-color: #007bff; /* Blue border */
+    background-color: #e7f4ff; /* Light blue background */
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('quiz-form');
+    const optionsLabels = document.querySelectorAll('.option-label');
+    const submitBtn = document.querySelector('.submit-btn');
+    const celebration = document.getElementById('celebration');
+    const timerElement = document.getElementById('timer');
+    const scoreElement = document.getElementById('current-score');
+
+    let timeLeft = parseInt(timerElement.textContent); // Get initial time from template
+    let timerInterval;
+
+    // Function to create confetti
+    function createConfetti() {
+        const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'];
+        for (let i = 0; i < 100; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDelay = Math.random() * 3 + 's';
+            celebration.appendChild(confetti);
+        }
+    }
+
+    // Function to show celebration
+    function showCelebration() {
+        celebration.style.display = 'block';
+        createConfetti();
+        setTimeout(() => {
+            celebration.style.display = 'none';
+            celebration.innerHTML = ''; // Clear confetti elements
+        }, 3000);
+    }
+
+    // Function to update timer display
+    function updateTimer() {
+        timerElement.textContent = timeLeft;
+        if (timeLeft <= 10) {
+            timerElement.style.color = '#dc3545'; // Change color for last 10 seconds
+        } else {
+             timerElement.style.color = '#3498db';
+        }
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            // Auto-submit the form when timer runs out
+            const formData = new FormData(form);
+            formData.set('selected_option', ''); // Submit empty answer for timeout
+            
+            // Send the answer to the server via AJAX
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Immediately redirect to next question
+                window.location.href = data.next_url;
+            })
+            .catch(error => {
+                console.error('Error submitting answer:', error);
+                // Redirect to quiz start on error
+                window.location.href = '/quiz/start/';
+            });
+        }
+        timeLeft--;
+    }
+
+    // Check if this is a resumed attempt
+    const urlParams = new URLSearchParams(window.location.search);
+    const isResumed = urlParams.get('resumed');
+    
+    if (isResumed) {
+        // Redirect to quiz start if this is a resumed attempt
+        window.location.href = '/quiz/start/';
+    }
+
+    // Start the timer when the page loads
+    timerInterval = setInterval(updateTimer, 1000);
+
+    // Add event listeners for option labels
+    optionsLabels.forEach(label => {
+        label.addEventListener('click', function() {
+            // Remove 'selected' class from all labels
+            optionsLabels.forEach(lbl => lbl.classList.remove('selected'));
+            // Add 'selected' class to the clicked label
+            this.classList.add('selected');
+
+            // Also ensure the corresponding radio input is checked
+            const optionInputId = this.getAttribute('for');
+            const optionInput = document.getElementById(optionInputId);
+            if (optionInput) {
+                optionInput.checked = true;
+            }
+        });
+    });
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        clearInterval(timerInterval); // Stop timer on submit
+        submitBtn.disabled = true; // Disable submit button
+
+        const selectedOptionInput = document.querySelector('input[name="selected_option"]:checked');
+        const selectedOptionValue = selectedOptionInput ? selectedOptionInput.value : '';
+
+        // Gather form data, including the selected option
+        const formData = new FormData(form);
+        formData.set('selected_option', selectedOptionValue); // Ensure selected option is in formData
+
+        // Send the answer to the server via AJAX
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                 'X-Requested-With': 'XMLHttpRequest' // Indicate AJAX request
+            }
+        })
+        .then(response => {
+             if (!response.ok) {
+                // Handle non-OK responses (e.g., 400, 500)
+                console.error('HTTP error', response.status);
+                // Optionally, parse response for error message
+                return response.text().then(text => { throw new Error(text) });
+             }
+             return response.json();
+        })
+        .then(data => {
+            // Remove 'selected' class after submission
+            optionsLabels.forEach(label => label.classList.remove('selected'));
+
+            // Display correct/incorrect feedback
+            const correctOptionElement = document.querySelector(`.option-label[data-option-value="${data.correct_option}"]`);
+
+            optionsLabels.forEach(label => {
+                 label.style.pointerEvents = 'none'; // Disable clicking options after submission
+                 const optionValue = label.getAttribute('data-option-value');
+                 if (optionValue === data.correct_option) {
+                      label.classList.add('correct'); // Mark correct option
+                 } else if (optionValue === selectedOptionValue) {
+                      label.classList.add('incorrect'); // Mark selected (wrong) option
+                 }
+            });
+
+            // Show celebration for correct answer
+            if (data.is_correct) {
+                showCelebration();
+            }
+
+            // Update score display
+            scoreElement.textContent = data.score;
+
+            // Redirect to the next question or result page after a delay
+            setTimeout(() => {
+                window.location.href = data.next_url;
+            }, 2000); // Redirect after 2 seconds
+        })
+        .catch(error => {
+            console.error('Error submitting answer:', error);
+            // Re-enable form elements and timer on error
+            submitBtn.disabled = false;
+            timerInterval = setInterval(updateTimer, 1000); // Restart timer
+            // You might want to display a user-friendly error message on the page
+        });
+    });
+
+    // Optional: Handle cases where a user navigates back to a completed question
+    // or a question from a different attempt. You might need additional logic
+    // to prevent submitting the same answer again or displaying correctly.
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Leaderboard{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 2rem auto; text-align:center;">
+    <h1>Leaderboard</h1>
+    <form method="get" action="" style="margin-top:2rem;">
+        <label for="category-select">Select Category:</label>
+        <select name="category" id="category-select" style="margin-left:1rem;">
+            <option value="">-- Choose a category --</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn" style="margin-left:1rem;">Show Leaderboard</button>
+    </form>
+    <div style="margin-top:2rem;">
+        <a href="/dashboard/" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %} 

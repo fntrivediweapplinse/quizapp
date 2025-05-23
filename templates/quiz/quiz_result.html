@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Quiz Result{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 700px; margin: 2rem auto;">
+    <h1 style="text-align:center;">Quiz Complete!</h1>
+    <h2 style="text-align:center; margin:1rem 0;">Your Score: {{ score }} / {{ total }}</h2>
+    <div style="text-align:center; margin-bottom:1rem;">
+        <span style="font-size:1.2rem; color:#3498db;">{{ percent }}%</span>
+    </div>
+    <div style="text-align:center; margin-bottom:2rem;">
+        <a href="/dashboard/" class="btn">Back to Dashboard</a>
+        <a href="{% url 'leaderboard' attempt.category.id %}" class="btn btn-secondary">View Leaderboard</a>
+    </div>
+    <h3>Question Review</h3>
+    <table style="width:100%; margin-top:1rem; border-collapse:collapse;">
+        <thead>
+            <tr style="background:#f5f5f5;">
+                <th style="padding:0.5rem; border:1px solid #ddd;">Question</th>
+                <th style="padding:0.5rem; border:1px solid #ddd;">Your Answer</th>
+                <th style="padding:0.5rem; border:1px solid #ddd;">Correct Answer</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for answer in answers %}
+            <tr style="background:{% if answer.is_correct %}#d4edda{% else %}#f8d7da{% endif %};">
+                <td style="padding:0.5rem; border:1px solid #ddd;">{{ answer.question.text }}</td>
+                <td style="padding:0.5rem; border:1px solid #ddd;">{{ answer.selected_option }}</td>
+                <td style="padding:0.5rem; border:1px solid #ddd;">{{ answer.question.correct_answer }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %} 

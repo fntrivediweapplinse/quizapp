@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Quiz Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1>Quiz Management Dashboard</h1>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="dashboard-section">
+            <h2>Categories</h2>
+            <div class="category-list">
+                {% for category in categories %}
+                <div class="category-card">
+                    <h3>{{ category.name }}</h3>
+                    <p>{{ category.description|truncatewords:20 }}</p>
+                    <div class="category-actions">
+                        <a href="{% url 'category_edit' category.slug %}" class="btn btn-small">Edit</a>
+                        <a href="{% url 'category_delete' category.slug %}" class="btn btn-small btn-danger">Delete</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p>No categories available. <a href="{% url 'category_create' %}">Create one</a></p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h2>Recent Questions</h2>
+            <div class="question-list">
+                {% for question in questions|slice:":5" %}
+                <div class="question-card">
+                    <h3>{{ question.text|truncatewords:10 }}</h3>
+                    <p>Category: {{ question.category.name }}</p>
+                    <div class="question-actions">
+                        <a href="{% url 'question_edit' question.pk %}" class="btn btn-small">Edit</a>
+                        <a href="{% url 'question_delete' question.pk %}" class="btn btn-small btn-danger">Delete</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p>No questions available. <a href="{% url 'question_create' %}">Create one</a></p>
+                {% endfor %}
+            </div>
+            {% if questions|length > 5 %}
+            <div class="view-all">
+                <a href="{% url 'question_list' %}" class="btn">View All Questions</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .dashboard {
+        padding: 2rem;
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .dashboard-section {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .category-list, .question-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .category-card, .question-card {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+    }
+
+    .category-card h3, .question-card h3 {
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+
+    .category-actions, .question-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .btn-small {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+    }
+
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+
+    .view-all {
+        text-align: center;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %} 

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - Quiz App{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 2rem auto;">
+    <h2 style="margin-bottom: 1.5rem; text-align: center;">Register</h2>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_email">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="form-error">{{ form.email.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group">
+            <label for="id_first_name">First Name</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+                <div class="form-error">{{ form.first_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group">
+            <label for="id_last_name">Last Name</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+                <div class="form-error">{{ form.last_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group">
+            <label for="id_password1">Password</label>
+            {{ form.password1 }}
+        </div>
+        <div class="form-group">
+            <label for="id_password2">Confirm Password</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+                <div class="form-error">{{ form.password2.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div style="text-align: center;">
+            <button type="submit" class="btn">Register</button>
+        </div>
+    </form>
+    <div style="margin-top: 1rem; text-align: center;">
+        <p>Already have an account? <a href="{% url 'login' %}" style="color: #3498db;">Login here</a></p>
+    </div>
+</div>
+<style>
+.form-error {
+    color: #dc3545;
+    font-size: 0.95rem;
+    margin-top: 0.25rem;
+}
+.card input[type="text"],
+.card input[type="email"],
+.card input[type="password"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    margin-top: 0.25rem;
+}
+.card label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+.card .btn {
+    width: 100%;
+    margin-top: 1rem;
+}
+</style>
+{% endblock %} 

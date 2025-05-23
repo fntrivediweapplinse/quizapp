@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="admincrud-container">
+    <div class="card admincrud-card">
+        <h1 style="text-align:center; margin-bottom:2rem;">Admin Dashboard</h1>
+        <div class="admincrud-actions">
+            <a href="{% url 'category_create' %}" class="admincrud-btn">Create Category</a>
+            <a href="{% url 'question_create' %}" class="admincrud-btn">Create Question</a>
+        </div>
+        <div class="admincrud-links">
+            <a href="{% url 'category_list' %}" class="admincrud-link">View All Categories</a>
+            <a href="{% url 'question_list' %}" class="admincrud-link">View All Questions</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.admincrud-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh;
+}
+.admincrud-card {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(44,62,80,0.08);
+}
+.admincrud-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+.admincrud-btn {
+    font-size: 1.2rem;
+    padding: 1rem 0;
+    width: 100%;
+    background: #3498db;
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(44,62,80,0.06);
+    border: none;
+    outline: none;
+    display: block;
+}
+.admincrud-btn:hover {
+    background: #217dbb;
+    box-shadow: 0 4px 16px rgba(44,62,80,0.10);
+}
+.admincrud-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+.admincrud-link {
+    color: #3498db;
+    text-decoration: underline;
+    font-size: 1rem;
+}
+.admincrud-link:hover {
+    color: #217dbb;
+}
+</style>
+{% endblock %} 
