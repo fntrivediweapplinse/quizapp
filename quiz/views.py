@@ -11,6 +11,10 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.db.models import Q
 
+from django.contrib.staticfiles import finders # Import finders to check for static files
+from django.templatetags.static import static # Import static to get static file URLs
+from django.template.defaultfilters import slugify # Import slugify
+
 # Create your views here.
 
 @login_required
@@ -26,8 +30,31 @@ def dashboard(request):
 def category_list(request):
     if not request.user.is_superuser:
         return render(request, 'quiz/admin_login.html')
+
     categories = Category.objects.all()
-    return render(request, 'quiz/category_list.html', {'categories': categories})
+    categories_with_images = []
+    default_image_url = static('images/categories/default_category.png') # Updated default image URL path
+
+    for category in categories:
+        # Construct potential image path based on category name (lowercase, replace spaces with underscores, add .png)
+        image_filename = slugify(category.name).replace('-', '_') + '.png'
+        potential_image_path = f'images/categories/{image_filename}'
+
+        # Check if the static file exists
+        if finders.find(potential_image_path):
+            # If it exists, use its URL
+            image_url = static(potential_image_path)
+        else:
+            # If not, use the default image URL
+            image_url = default_image_url
+
+        # Append a dictionary with category object and image_url
+        categories_with_images.append({
+            'category': category,
+            'image_url': image_url
+        })
+
+    return render(request, 'quiz/category_list.html', {'categories': categories_with_images})
 
 @login_required
 def category_create(request):

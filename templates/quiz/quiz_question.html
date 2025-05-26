@@ -94,6 +94,17 @@
     color: #721c24;
 }
 
+/* Animation for Correct Answer */
+@keyframes pulse-correct {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+    50% { box-shadow: 0 0 0 25px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+
+.option-label.correct.pulse {
+    animation: pulse-correct 2s;
+}
+
 .submit-btn {
     width: 100%;
     padding: 1rem;
@@ -165,27 +176,46 @@ document.addEventListener('DOMContentLoaded', function() {
     let timeLeft = parseInt(timerElement.textContent); // Get initial time from template
     let timerInterval;
 
-    // Function to create confetti
-    function createConfetti() {
-        const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'];
-        for (let i = 0; i < 100; i++) {
-            const confetti = document.createElement('div');
-            confetti.className = 'confetti';
-            confetti.style.left = Math.random() * 100 + 'vw';
-            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.animationDelay = Math.random() * 3 + 's';
-            celebration.appendChild(confetti);
-        }
-    }
+    // Function to create localized confetti effect
+    function createLocalizedCelebration(targetElement) {
+        const rect = targetElement.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
 
-    // Function to show celebration
-    function showCelebration() {
-        celebration.style.display = 'block';
-        createConfetti();
-        setTimeout(() => {
-            celebration.style.display = 'none';
-            celebration.innerHTML = ''; // Clear confetti elements
-        }, 3000);
+        const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff', '#ffa500', '#800080']; // Added more colors
+
+        for (let i = 0; i < 50; i++) { // Reduced confetti count for localized effect
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti'; // Reuse existing confetti style (adjust if needed)
+            confetti.style.position = 'fixed';
+            confetti.style.width = '8px'; // Smaller confetti
+            confetti.style.height = '8px';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = `${centerX}px`;
+            confetti.style.top = `${centerY}px`;
+            confetti.style.opacity = 1;
+            confetti.style.pointerEvents = 'none';
+            confetti.style.zIndex = 1000;
+
+            const angle = Math.random() * 360;
+            const velocity = Math.random() * 250 + 150; // Adjusted velocity range for wider spread
+
+            const animation = confetti.animate([
+                { transform: `translate(0, 0) rotate(0deg)`, opacity: 1 },
+                { transform: `translate(${(Math.cos(angle * Math.PI / 180) * velocity)}px, ${(Math.sin(angle * Math.PI / 180) * velocity)}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }
+            ], {
+                duration: Math.random() * 1800 + 1200, // Slightly longer duration
+                easing: 'ease-out',
+                fill: 'both'
+            });
+
+            document.body.appendChild(confetti);
+
+            // Remove confetti element after animation ends
+            animation.onfinish = () => {
+                confetti.remove();
+            };
+        }
     }
 
     // Function to update timer display
@@ -288,6 +318,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const optionValue = label.getAttribute('data-option-value');
                 if (optionValue === data.correct_option) {
                     label.classList.add('correct'); // Mark correct option
+                     if (data.is_correct) {
+                        label.classList.add('pulse'); // Add pulse class for correct answer animation
+
+                        // Trigger localized celebration from the correct option
+                        createLocalizedCelebration(label); // Pass the correct label element
+                    }
                 } else if (optionValue === selectedOptionValue) {
                     label.classList.add('incorrect'); // Mark selected (wrong) option
                 }
@@ -295,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Show celebration for correct answer
             if (data.is_correct) {
-                showCelebration();
+                // showCelebration();
             }
 
             // Update score display

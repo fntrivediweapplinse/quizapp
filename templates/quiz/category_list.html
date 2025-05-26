@@ -11,16 +11,19 @@
     </div>
 
     <div class="category-grid">
-        {% for category in categories %}
+        {% for item in categories %}
         <div class="category-card">
-            <h3>{{ category.name }}</h3>
-            <p>{{ category.description|truncatewords:20 }}</p>
+            {# Display Category Image using the calculated image_url from the view #}
+            <img src="{{ item.image_url }}" alt="{{ item.category.name }} Image" style="max-width: 100%; height: auto; border-radius: 4px; margin-bottom: 1rem;">
+
+            <h3>{{ item.category.name }}</h3>
+            <p>{{ item.category.description|truncatewords:20 }}</p>
             <div class="category-meta">
-                <span>{{ category.questions.count }} questions</span>
+                <span>{{ item.category.questions.count }} questions</span>
             </div>
             <div class="category-actions">
-                <a href="{% url 'category_edit' category.slug %}" class="btn btn-small">Edit</a>
-                <a href="{% url 'category_delete' category.slug %}" class="btn btn-small btn-danger">Delete</a>
+                <a href="{% url 'category_edit' item.category.slug %}" class="btn btn-small">Edit</a>
+                <a href="{% url 'category_delete' item.category.slug %}" class="btn btn-small btn-danger">Delete</a>
             </div>
         </div>
         {% empty %}
