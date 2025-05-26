@@ -7,9 +7,6 @@
 <div class="quiz-container">
     <div class="quiz-header">
         <h2>{{ question.category.name }}</h2>
-        <div class="progress-container">
-            <div class="progress" style="width: {{ progress }}%"></div>
-        </div>
         <p>Question {{ current_question_number }} of {{ total_questions }} | Score: <span id="current-score">{{ score }}</span> | Time Left: <span id="timer">{{ quiz_timer_duration }}</span>s</p>
     </div>
 
@@ -48,21 +45,6 @@
 
 .quiz-header {
     margin-bottom: 2rem;
-}
-
-.progress-container {
-    width: 100%;
-    height: 8px;
-    background: #eee;
-    border-radius: 4px;
-    margin: 1rem 0;
-    overflow: hidden;
-}
-
-.progress {
-    height: 100%;
-    background: #3498db;
-    transition: width 0.3s ease;
 }
 
 .question-container {
@@ -157,10 +139,12 @@
     }
 }
 
-/* Style for timer */
+/* Style for timer - Made more prominent */
 #timer {
     font-weight: bold;
     color: #3498db;
+    font-size: 1.2em; /* Increased font size */
+    margin-left: 5px; /* Added a small left margin for spacing */
 }
 
 .option-label.selected {
@@ -214,10 +198,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
+            submitBtn.disabled = true; // Disable submit button
+
             // Auto-submit the form when timer runs out
             const formData = new FormData(form);
             formData.set('selected_option', ''); // Submit empty answer for timeout
-            
+
             // Send the answer to the server via AJAX
             fetch(window.location.href, {
                 method: 'POST',
@@ -229,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                // Immediately redirect to next question
+                // Immediately redirect to next question without delay
                 window.location.href = data.next_url;
             })
             .catch(error => {
@@ -244,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if this is a resumed attempt
     const urlParams = new URLSearchParams(window.location.search);
     const isResumed = urlParams.get('resumed');
-    
+
     if (isResumed) {
         // Redirect to quiz start if this is a resumed attempt
         window.location.href = '/quiz/start/';
@@ -288,33 +274,23 @@ document.addEventListener('DOMContentLoaded', function() {
             body: formData,
             headers: {
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                 'X-Requested-With': 'XMLHttpRequest' // Indicate AJAX request
+                'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => {
-             if (!response.ok) {
-                // Handle non-OK responses (e.g., 400, 500)
-                console.error('HTTP error', response.status);
-                // Optionally, parse response for error message
-                return response.text().then(text => { throw new Error(text) });
-             }
-             return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             // Remove 'selected' class after submission
             optionsLabels.forEach(label => label.classList.remove('selected'));
 
             // Display correct/incorrect feedback
-            const correctOptionElement = document.querySelector(`.option-label[data-option-value="${data.correct_option}"]`);
-
             optionsLabels.forEach(label => {
-                 label.style.pointerEvents = 'none'; // Disable clicking options after submission
-                 const optionValue = label.getAttribute('data-option-value');
-                 if (optionValue === data.correct_option) {
-                      label.classList.add('correct'); // Mark correct option
-                 } else if (optionValue === selectedOptionValue) {
-                      label.classList.add('incorrect'); // Mark selected (wrong) option
-                 }
+                label.style.pointerEvents = 'none'; // Disable clicking options after submission
+                const optionValue = label.getAttribute('data-option-value');
+                if (optionValue === data.correct_option) {
+                    label.classList.add('correct'); // Mark correct option
+                } else if (optionValue === selectedOptionValue) {
+                    label.classList.add('incorrect'); // Mark selected (wrong) option
+                }
             });
 
             // Show celebration for correct answer
@@ -325,17 +301,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update score display
             scoreElement.textContent = data.score;
 
-            // Redirect to the next question or result page after a delay
+            // Redirect to the next question after a short delay
             setTimeout(() => {
                 window.location.href = data.next_url;
-            }, 2000); // Redirect after 2 seconds
+            }, 1000); // Reduced delay to 1 second
         })
         .catch(error => {
             console.error('Error submitting answer:', error);
             // Re-enable form elements and timer on error
             submitBtn.disabled = false;
             timerInterval = setInterval(updateTimer, 1000); // Restart timer
-            // You might want to display a user-friendly error message on the page
         });
     });
 

@@ -1,20 +1,68 @@
 {% extends 'base.html' %}
 {% block title %}Leaderboard{% endblock %}
 {% block content %}
-<div class="card" style="max-width: 500px; margin: 2rem auto; text-align:center;">
-    <h1>Leaderboard</h1>
-    <form method="get" action="" style="margin-top:2rem;">
+<div class="card" style="max-width: 700px; margin: 2rem auto;">
+    <h1 style="text-align:center;">Leaderboard</h1>
+
+    <div style="text-align:center; margin-top:1rem; margin-bottom:2rem;">
         <label for="category-select">Select Category:</label>
         <select name="category" id="category-select" style="margin-left:1rem;">
             <option value="">-- Choose a category --</option>
             {% for category in categories %}
-                <option value="{{ category.id }}">{{ category.name }}</option>
+                <option value="{{ category.id }}" {% if selected_category and category.id == selected_category.id %}selected{% endif %}>{{ category.name }}</option>
             {% endfor %}
         </select>
-        <button type="submit" class="btn" style="margin-left:1rem;">Show Leaderboard</button>
-    </form>
-    <div style="margin-top:2rem;">
+    </div>
+
+    {% if top_attempts %}
+    <table style="width:100%; margin-top:1rem; border-collapse:collapse;">
+        <thead>
+            <tr style="background:#f5f5f5;">
+                <th style="padding:0.5rem; border:1px solid #ddd;">Rank</th>
+                <th style="padding:0.5rem; border:1px solid #ddd;">User</th>
+                <th style="padding:0.5rem; border:1px solid #ddd;">Score</th>
+                <th style="padding:0.5rem; border:1px solid #ddd;">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attempt in top_attempts %}
+            <tr>
+                <td style="padding:0.5rem; border:1px solid #ddd;">{{ forloop.counter }}</td>
+                <td style="padding:0.5rem; border:1px solid #ddd;">
+                    {% if attempt.user %}
+                        {{ attempt.user.first_name }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td style="padding:0.5rem; border:1px solid #ddd;">{{ attempt.score }} / {{ attempt.total_questions }}</td>
+                <td style="padding:0.5rem; border:1px solid #ddd;">{{ attempt.finished_at|date:"M d, Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align:center;">No attempts yet{% if selected_category %} for {{ selected_category.name }}{% endif %}.</p>
+    {% endif %}
+
+    <div style="text-align:center; margin-top:2rem;">
         <a href="/dashboard/" class="btn btn-secondary">Back to Dashboard</a>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category-select');
+    categorySelect.addEventListener('change', function() {
+        const categoryId = this.value;
+        if (categoryId) {
+            // Change the URL to include the selected category as a GET parameter
+            window.location.href = '/dashboard/leaderboard/?category=' + categoryId; // Changed to use GET parameter
+        } else {
+             // If no category is selected (the default option), redirect to the main leaderboard URL without parameters
+             window.location.href = '/dashboard/leaderboard/';
+        }
+    });
+});
+</script>
 {% endblock %} 

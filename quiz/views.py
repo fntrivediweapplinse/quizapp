@@ -211,8 +211,8 @@ def quiz_question(request, category_id):
     ).first()
     
     if not attempt:
-        # Should not happen if quiz_start logic is correct, but as a safeguard:
-        messages.error(request, 'Could not find an active quiz attempt. Please start a new quiz.')
+        # If no attempt exists, redirect to start
+        messages.error(request, 'No active quiz attempt found. Please start a new quiz.')
         return redirect('quiz_dashboard')
 
     # Get the ordered list of question IDs for this attempt
@@ -225,11 +225,10 @@ def quiz_question(request, category_id):
          return redirect('quiz_dashboard')
 
     # Fetch the questions in the correct order
-    # Use a case statement to order by the list of IDs
     from django.db.models import Case, When, Value, IntegerField
     ordered_questions = Question.objects.filter(id__in=question_order_ids).order_by(Case(
         *[When(id=q_id, then=pos) for pos, q_id in enumerate(question_order_ids)],
-        default=len(question_order_ids), # Questions not in the list go to the end
+        default=len(question_order_ids),
         output_field=IntegerField()
     ))
     
@@ -241,21 +240,20 @@ def quiz_question(request, category_id):
         try:
              current_question_index = list(ordered_questions).index(attempt.current_question)
         except ValueError:
-             # Handle case where the current question is not in the ordered list (shouldn't happen)
+             # Handle case where the current question is not in the ordered list
              messages.error(request, "Error finding current question in the quiz list.")
-             # Optionally, reset the attempt or redirect
+             attempt.delete()  # Delete the attempt and start fresh
              return redirect('quiz_dashboard')
 
     # If current_question is not set or is beyond the last question, redirect to result
     if not attempt.current_question or current_question_index >= total_questions:
-         # This handles the case where the quiz is completed or attempt was created without setting current_question
          attempt.completed = True
-         if not attempt.finished_at: # Set finished_at only if not already set
+         if not attempt.finished_at:
              attempt.finished_at = timezone.now()
          attempt.save()
-         return redirect('leaderboard', category_id=category.id) # Redirect to leaderboard with category_id
+         return redirect('leaderboard', category_id=category.id)
 
-    current_question = attempt.current_question # Use the question object from the attempt
+    current_question = attempt.current_question
     
     # Get options from the current question model
     options = [
@@ -264,8 +262,6 @@ def quiz_question(request, category_id):
         current_question.option3,
         current_question.option4,
     ]
-    # Shuffle options for display (optional, but good for variability)
-    import random
     random.shuffle(options)
     
     # Calculate progress
@@ -273,29 +269,10 @@ def quiz_question(request, category_id):
     progress = (current_question_number / total_questions) * 100 if total_questions > 0 else 0
 
     # Define the timer duration (in seconds)
-    quiz_timer_duration = 30 # Example: 30 seconds per question
-    # You might want to store remaining time in the session or attempt if allowing page refreshes
+    quiz_timer_duration = 30
 
     if request.method == 'POST':
-        selected_option = request.POST.get('selected_option')
-        # Check if selected_option is None or empty
-        # This check was already there, keeping it.
-        if not selected_option:
-             messages.warning(request, "Please select an option.")
-             # Re-render the current question page with message
-             context = {
-                'question': current_question,
-                'options': options,
-                'category': category,
-                'progress': progress,
-                'current_question_number': current_question_number,
-                'total_questions': total_questions,
-                'score': attempt.score, # Include score in context
-                'quiz_timer_duration': quiz_timer_duration, # Pass timer duration
-             }
-             return render(request, 'quiz/quiz_question.html', context)
-
-        is_correct = (selected_option == current_question.correct_answer)
+        selected_option = request.POST.get('selected_option', '')  # Default to empty string if no option selected
         
         # Save answer - use get_or_create to prevent duplicates on refresh
         answer, created = QuizAnswer.objects.get_or_create(
@@ -303,17 +280,14 @@ def quiz_question(request, category_id):
             question=current_question,
             defaults={
                 'selected_option': selected_option,
-                'is_correct': is_correct
+                'is_correct': selected_option == current_question.correct_answer
             }
         )
         
         # Update score only if the answer was just created AND it's correct
-        if created and is_correct:
+        if created and selected_option == current_question.correct_answer:
             attempt.score += 1
             attempt.save()
-            # messages.success(request, "Correct Answer!") # Removed server-side messages for AJAX feedback
-        # elif created and not is_correct:
-            # messages.error(request, "Incorrect Answer.") # Removed server-side messages for AJAX feedback
 
         # Determine the next question index
         next_question_index = current_question_index + 1
@@ -326,29 +300,26 @@ def quiz_question(request, category_id):
         else:
             # Quiz completed
             attempt.completed = True
-            if not attempt.finished_at: # Set finished_at only if not already set
+            if not attempt.finished_at:
                 attempt.finished_at = timezone.now()
             attempt.save()
-            next_url = reverse('leaderboard', args=[category_id]) # Redirect to leaderboard with category_id
+            # Redirect to the main leaderboard page after quiz completion with category ID as GET parameter
+            next_url = reverse('leaderboard_main') + f'?category={category_id}' # Pass category_id as GET parameter
 
         # Handle AJAX request for immediate feedback and next question URL
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-             correct_option_text = current_question.correct_answer
              return JsonResponse({
-                'is_correct': is_correct,
-                'correct_option': correct_option_text,
+                'is_correct': selected_option == current_question.correct_answer,
+                'correct_option': current_question.correct_answer,
                 'next_url': next_url,
-                'score': attempt.score, # Pass updated score
-                'current_question_number': current_question_number, # Pass updated question number
-                'total_questions': total_questions, # Pass total questions
-                'quiz_timer_duration': quiz_timer_duration, # Pass timer duration for the next question
+                'score': attempt.score,
+                'current_question_number': current_question_number,
+                'total_questions': total_questions,
+                'quiz_timer_duration': quiz_timer_duration,
              })
 
         # Redirect for non-AJAX requests (fallback)
         return redirect(next_url)
-    
-    # GET request logic to display the current question
-    # (Logic for retrieving attempt, current_question, options, progress is above)
     
     context = {
         'question': current_question,
@@ -357,8 +328,8 @@ def quiz_question(request, category_id):
         'progress': progress,
         'current_question_number': current_question_number,
         'total_questions': total_questions,
-        'score': attempt.score, # Include score in context
-        'quiz_timer_duration': quiz_timer_duration, # Pass timer duration to template
+        'score': attempt.score,
+        'quiz_timer_duration': quiz_timer_duration,
     }
     
     return render(request, 'quiz/quiz_question.html', context)
@@ -397,22 +368,28 @@ def quiz_result(request, category_id=None):
 @login_required
 def leaderboard_main(request):
     categories = Category.objects.all()
-    return render(request, 'quiz/leaderboard_main.html', {'categories': categories})
+    selected_category = None
+    top_attempts = None
 
-@login_required
-def leaderboard(request, category_id):
-    category = get_object_or_404(Category, id=category_id)
-    # Get completed attempts for this category, ordered by score descending
-    top_attempts = QuizAttempt.objects.filter(
-        category=category,
-        completed=True
-    ).order_by('-score', 'finished_at')[:10] # Top 10, adjust as needed
+    category_id = request.GET.get('category')
+    if category_id:
+        try:
+            selected_category = Category.objects.get(id=category_id)
+            # Get completed attempts for this category, ordered by score descending and then by finish time ascending
+            top_attempts = QuizAttempt.objects.filter(
+                category=selected_category,
+                completed=True
+            ).order_by('-score', 'finished_at')[:10] # Top 10, adjust as needed
+
+        except Category.DoesNotExist:
+            messages.error(request, "Selected category does not exist.")
 
     context = {
-        'category': category,
+        'categories': categories,
+        'selected_category': selected_category,
         'top_attempts': top_attempts,
     }
-    return render(request, 'quiz/leaderboard.html', context)
+    return render(request, 'quiz/leaderboard_main.html', context)
 
 def custom_logout(request):
     logout(request)
